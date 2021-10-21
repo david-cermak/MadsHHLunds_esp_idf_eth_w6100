@@ -1,0 +1,10 @@
+version: "0.0.0"
+
+targets:
+  - esp32
+
+description: W6100 driver for IDF esp-eth component
+
+maintainers:
+  - MadsHHLund <MadsHHLund@....com>
+  

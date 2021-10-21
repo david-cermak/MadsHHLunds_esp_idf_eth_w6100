@@ -38,10 +38,14 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "hal/cpu_hal.h"
+#include "esp_eth_w6100.h"
 #include "w6100.h"
 #include "sdkconfig.h"
-#include "IO_mcp23017.h"
-#include "IOT_data.h"
+//#include "IO_mcp23017.h"
+//#include "IOT_data.h"
+
+static bool EthernetChip = false;
+static bool NoCable = false;
 
 static const char *TAG = "w6100-mac";
 #define MAC_CHECK(a, str, goto_tag, ret_value, ...)                               \
@@ -404,7 +408,8 @@ static esp_err_t emac_w6100_start(esp_eth_mac_t *mac)
 
     reg_value = 1<<7;
     /* Enable INTn */
-    MAC_CHECK(w6100_send_command(emac, W6100_SYCR1, 100) == ESP_OK, "issue OPEN command failed", err, ESP_FAIL);
+//    This is wrong!
+//    MAC_CHECK(w6100_send_command(emac, W6100_SYCR1, 100) == ESP_OK, "issue OPEN command failed", err, ESP_FAIL);
 
     reg_value = W6100_SIMR_SOCK0;       // enable Socket 0 Interrupt
     MAC_CHECK(w6100_write(emac, W6100_REG_SIMR, &reg_value, sizeof(reg_value)) == ESP_OK, "write SIMR failed", err, ESP_FAIL);
@@ -680,9 +685,10 @@ static esp_err_t emac_w6100_set_peer_pause_ability(esp_eth_mac_t *mac, uint32_t 
 
 
 
-static inline bool is_w5500_sane_for_rxtx(esp_eth_mac_t *emac)
+static inline bool is_w5500_sane_for_rxtx(emac_w6100_t *emac)
 {
     uint8_t phycfg;
+
     /* phy is ok for rx and tx operations if bits RST and LNK are set (no link down, no reset) */
     // if (w6100_read(emac, W6100_REG_PHYCFGR, &phycfg, 1) == ESP_OK && (phycfg & 0x8001)) {
     //     return true;
@@ -829,7 +835,7 @@ err:
 
 static esp_err_t emac_w6100_init(esp_eth_mac_t *mac)
 {
-    uint8_t PhyStatus=0;
+//    uint8_t PhyStatus=0;
 
   //  printf("Mac w5500 init\n");
 
@@ -886,21 +892,21 @@ static esp_err_t emac_w6100_del(esp_eth_mac_t *mac)
     return ESP_OK;
 }
 
-esp_eth_mac_t *esp_eth_mac_new_w6100(const eth_w5500_config_t *w5500_config, const eth_mac_config_t *mac_config)
+esp_eth_mac_t *esp_eth_mac_new_w6100(const eth_w6100_config_t *w6100_config, const eth_mac_config_t *mac_config)
 {
    //    printf("Mac w6100 _new_w6100\n");
 
     esp_eth_mac_t *ret = NULL;
     emac_w6100_t *emac = NULL;
-    MAC_CHECK(w5500_config && mac_config, "invalid argument", err, NULL);
+    MAC_CHECK(w6100_config && mac_config, "invalid argument", err, NULL);
     emac = calloc(1, sizeof(emac_w6100_t));
     MAC_CHECK(emac, "no mem for MAC instance", err, NULL);
     /* w5500 driver is interrupt driven */
-    MAC_CHECK(w5500_config->int_gpio_num >= 0, "invalid interrupt gpio number", err, NULL);
+    MAC_CHECK(w6100_config->int_gpio_num >= 0, "invalid interrupt gpio number", err, NULL);
     /* bind methods and attributes */
     emac->sw_reset_timeout_ms = mac_config->sw_reset_timeout_ms;
-    emac->int_gpio_num = w5500_config->int_gpio_num;
-    emac->spi_hdl = w5500_config->spi_hdl;
+    emac->int_gpio_num = w6100_config->int_gpio_num;
+    emac->spi_hdl = w6100_config->spi_hdl;
     emac->parent.set_mediator = emac_w6100_set_mediator;
     emac->parent.init = emac_w6100_init;
     emac->parent.deinit = emac_w6100_deinit;

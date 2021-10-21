@@ -23,7 +23,7 @@
 // #include "esp_rom_sys.h"
 #include "w6100.h"
 
-static const char *TAG = "w5500-phy";
+static const char *TAG = "w6100-phy";
 #define PHY_CHECK(a, str, goto_tag, ...)                                          \
     do                                                                            \
     {                                                                             \
